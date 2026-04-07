@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+.venv/
+ml-service/venv/
+
+# Java / Maven / Gradle
+gateway-service/target/
+*.jar
+*.class
+*.log
+*.iml
+.idea/
+*.DS_Store
+
+# Docker
+*.dockerignore
+
+# Data files (never commit the huge dataset!)
+*.csv
+*.joblib
+*.pkl
+*.model
+
+# Environment
+.env
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
