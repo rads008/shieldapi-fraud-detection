@@ -22,7 +22,7 @@ gateway-service/target/
 # Docker
 *.dockerignore
 
-# Data files (never commit the huge dataset!)
+# Data files
 *.csv
 *.joblib
 *.pkl
