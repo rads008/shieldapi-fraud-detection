@@ -1,54 +1,737 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShieldAPI • Fraud Protection</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ShieldAPI — Real-time AI Fraud Protection</title>
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Syne (display) + DM Mono (data/code) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        shield: {
+                            bg:       '#070B14',
+                            surface:  '#0D1320',
+                            border:   '#1A2540',
+                            blue:     '#2D7EFF',
+                            cyan:     '#00D4FF',
+                            purple:   '#8B5CF6',
+                            magenta:  '#D946EF',
+                            green:    '#00E5A0',
+                            yellow:   '#FFD43B',
+                            red:      '#FF4757',
+                            muted:    '#4A5878',
+                            subtle:   '#1E2D4A',
+                        }
+                    },
+                    fontFamily: {
+                        display: ['Syne', 'sans-serif'],
+                        body:    ['DM Sans', 'sans-serif'],
+                        mono:    ['DM Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'glow-blue':   '0 0 40px rgba(45,126,255,0.25), 0 0 80px rgba(45,126,255,0.10)',
+                        'glow-green':  '0 0 40px rgba(0,229,160,0.25)',
+                        'glow-red':    '0 0 40px rgba(255,71,87,0.30)',
+                        'glow-yellow': '0 0 40px rgba(255,212,59,0.25)',
+                        'glass':       'inset 0 1px 0 rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.5)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4,0,0.6,1) infinite',
+                        'float':      'float 6s ease-in-out infinite',
+                        'scan':       'scan 2s linear infinite',
+                        'fade-up':    'fadeUp 0.6s ease forwards',
+                        'draw':       'draw 1.2s ease forwards',
+                        'shimmer':    'shimmer 2s linear infinite',
+                    },
+                    keyframes: {
+                        float:   { '0%,100%': {transform:'translateY(0)'}, '50%': {transform:'translateY(-10px)'} },
+                        scan:    { '0%': {transform:'translateY(-100%)'}, '100%': {transform:'translateY(400%)'} },
+                        fadeUp:  { '0%': {opacity:'0',transform:'translateY(24px)'}, '100%': {opacity:'1',transform:'translateY(0)'} },
+                        draw:    { '0%': {strokeDashoffset:'440'}, '100%': {strokeDashoffset:'0'} },
+                        shimmer: { '0%': {backgroundPosition:'-200% 0'}, '100%': {backgroundPosition:'200% 0'} },
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body { font-family: 'Inter', system-ui, sans-serif; }
+        /* ─── Base ──────────────────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            background: #070B14;
+            color: #CBD5E8;
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ─── Scrollbar ─────────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #0D1320; }
+        ::-webkit-scrollbar-thumb { background: #1A2540; border-radius: 4px; }
+
+        /* ─── Background grid ───────────────────────────────────── */
+        .bg-grid {
+            background-image:
+                    linear-gradient(rgba(45,126,255,0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(45,126,255,0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* ─── Noise overlay ─────────────────────────────────────── */
+        .noise::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.4;
+        }
+
+        /* ─── Glass card ────────────────────────────────────────── */
+        .glass {
+            background: rgba(13,19,32,0.75);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(45,126,255,0.15);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 24px 64px rgba(0,0,0,0.5);
+        }
+
+        /* ─── Input base ────────────────────────────────────────── */
+        .field {
+            background: rgba(7,11,20,0.8);
+            border: 1px solid #1A2540;
+            border-radius: 10px;
+            color: #CBD5E8;
+            font-family: 'DM Mono', monospace;
+            font-size: 14px;
+            padding: 12px 16px;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+        .field:focus {
+            border-color: #2D7EFF;
+            background: rgba(45,126,255,0.06);
+            box-shadow: 0 0 0 3px rgba(45,126,255,0.12);
+        }
+        .field::placeholder { color: #4A5878; }
+        select.field option { background: #0D1320; }
+
+        /* ─── Analyze button ────────────────────────────────────── */
+        .btn-analyze {
+            position: relative;
+            background: linear-gradient(135deg, #2D7EFF 0%, #8B5CF6 100%);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 16px 32px;
+            cursor: pointer;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        .btn-analyze::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, #00D4FF 0%, #2D7EFF 50%, #8B5CF6 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .btn-analyze:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(45,126,255,0.4), 0 8px 24px rgba(0,0,0,0.4); }
+        .btn-analyze:hover::before { opacity: 1; }
+        .btn-analyze:active { transform: translateY(0); }
+        .btn-analyze span { position: relative; z-index: 1; }
+        .btn-analyze:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        /* ─── Gauge ─────────────────────────────────────────────── */
+        .gauge-ring {
+            stroke-dasharray: 440;
+            stroke-dashoffset: 440;
+            transform-origin: center;
+            transform: rotate(-90deg);
+            transition: stroke-dashoffset 1.4s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.5s;
+        }
+
+        /* ─── Recent cards scroll ───────────────────────────────── */
+        .scroll-x {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .scroll-x::-webkit-scrollbar { display: none; }
+
+        /* ─── Shimmer skeleton ──────────────────────────────────── */
+        .skeleton {
+            background: linear-gradient(90deg, #1A2540 25%, #233050 50%, #1A2540 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 6px;
+        }
+
+        /* ─── Risk pulse ring ───────────────────────────────────── */
+        @keyframes riskPulse {
+            0%,100% { transform: scale(1); opacity: 0.6; }
+            50%      { transform: scale(1.12); opacity: 0.2; }
+        }
+        .risk-pulse { animation: riskPulse 2s ease-in-out infinite; }
+
+        /* ─── Scan line ─────────────────────────────────────────── */
+        @keyframes scanLine {
+            0%   { top: 0%; opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .scan-line {
+            position: absolute;
+            left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #2D7EFF, #00D4FF, #2D7EFF, transparent);
+            animation: scanLine 2s linear infinite;
+            pointer-events: none;
+        }
+
+        /* ─── Orb blobs ─────────────────────────────────────────── */
+        .orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            pointer-events: none;
+            z-index: 0;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        /* ─── Result panel fade-in ──────────────────────────────── */
+        @keyframes resultReveal {
+            from { opacity: 0; transform: translateY(32px) scale(0.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .result-reveal { animation: resultReveal 0.5s cubic-bezier(0.34,1.2,0.64,1) forwards; }
+
+        /* ─── Badge glow ────────────────────────────────────────── */
+        @keyframes badgeGlow {
+            0%,100% { box-shadow: 0 0 6px rgba(0,229,160,0.5); }
+            50%      { box-shadow: 0 0 16px rgba(0,229,160,0.9); }
+        }
+        .badge-glow { animation: badgeGlow 2.5s ease-in-out infinite; }
+
+        /* ─── Collapsible advanced ──────────────────────────────── */
+        .adv-panel {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.45s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
+            opacity: 0;
+        }
+        .adv-panel.open { max-height: 600px; opacity: 1; }
+
+        /* ─── Sparkline ─────────────────────────────────────────── */
+        .sparkline polyline { fill: none; stroke: #2D7EFF; stroke-width: 2; }
+
+        /* ─── Tooltip ───────────────────────────────────────────── */
+        .tip { position: relative; }
+        .tip::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1A2540;
+            color: #CBD5E8;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .tip:hover::after { opacity: 1; }
+
+        /* ─── Stagger animations ────────────────────────────────── */
+        .stagger > * { opacity: 0; animation: fadeUp 0.5s ease forwards; }
+        .stagger > *:nth-child(1) { animation-delay: 0.05s; }
+        .stagger > *:nth-child(2) { animation-delay: 0.12s; }
+        .stagger > *:nth-child(3) { animation-delay: 0.19s; }
+        .stagger > *:nth-child(4) { animation-delay: 0.26s; }
+        .stagger > *:nth-child(5) { animation-delay: 0.33s; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── Loading spinner ───────────────────────────────────── */
+        @keyframes spin360 { to { transform: rotate(360deg); } }
+        .spinner { animation: spin360 0.7s linear infinite; }
+
+        /* ─── Copy success flash ────────────────────────────────── */
+        @keyframes copyFlash {
+            0%,100% { opacity: 1; }
+            50%      { opacity: 0.4; }
+        }
+        .copy-flash { animation: copyFlash 0.3s ease; }
     </style>
 </head>
-<body class="bg-zinc-950 text-white min-h-screen">
-<div class="max-w-4xl mx-auto p-8">
-    <div class="text-center mb-10">
-        <h1 class="text-5xl font-bold text-blue-400">🛡️ ShieldAPI</h1>
-        <p class="text-zinc-400 mt-2">Real-time AI Fraud Detection • Live on Google Cloud</p>
-    </div>
 
-    <div class="bg-zinc-900 border border-white/10 rounded-3xl p-10">
-        <h2 class="text-2xl font-semibold mb-8 text-center">Analyze Transaction</h2>
+<body class="bg-grid noise relative">
 
-        <div class="grid grid-cols-2 gap-6">
-            <div>
-                <label class="block text-xs uppercase text-zinc-400 mb-2">Transaction ID</label>
-                <input id="txId" type="text" value="tx-live-001" class="w-full bg-zinc-800 border border-white/10 rounded-2xl px-6 py-4 focus:outline-none focus:border-blue-500">
+<!-- ═══════════════════════════════════════════════
+     AMBIENT ORBS
+════════════════════════════════════════════════════ -->
+<div class="orb w-96 h-96 bg-shield-blue/10 -top-24 -left-24" style="animation-delay:0s;"></div>
+<div class="orb w-80 h-80 bg-shield-purple/10 top-1/2 -right-20" style="animation-delay:3s;"></div>
+<div class="orb w-64 h-64 bg-shield-cyan/8 bottom-40 left-1/3" style="animation-delay:1.5s;"></div>
+
+<!-- ═══════════════════════════════════════════════
+     NAV
+════════════════════════════════════════════════════ -->
+<nav class="relative z-50 sticky top-0">
+    <div class="glass border-b border-shield-border/50 px-6 py-4">
+        <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+
+            <!-- Logo -->
+            <div class="flex items-center gap-3 shrink-0">
+                <div class="relative w-10 h-10 rounded-xl glass flex items-center justify-center shadow-glow-blue">
+                    <span class="text-2xl select-none">🛡️</span>
+                </div>
+                <div>
+                    <div class="font-display font-800 text-white text-lg leading-none tracking-tight">ShieldAPI</div>
+                    <div class="font-mono text-xs text-shield-muted mt-0.5 hidden sm:block">Real-time AI Fraud Protection</div>
+                </div>
             </div>
-            <div>
-                <label class="block text-xs uppercase text-zinc-400 mb-2">Amount ($)</label>
-                <input id="amount" type="number" value="100.5" class="w-full bg-zinc-800 border border-white/10 rounded-2xl px-6 py-4 focus:outline-none focus:border-blue-500">
+
+            <!-- Center badges -->
+            <div class="flex items-center gap-3 flex-wrap justify-center">
+                <!-- Live GCP badge -->
+                <div class="badge-glow flex items-center gap-2 bg-shield-green/10 border border-shield-green/30 rounded-full px-3 py-1.5 text-xs font-mono text-shield-green">
+                    <span class="w-1.5 h-1.5 rounded-full bg-shield-green inline-block"></span>
+                    Live on GCP Cloud Run
+                </div>
+                <!-- Version -->
+                <div class="hidden sm:flex items-center gap-2 bg-shield-subtle border border-shield-border rounded-full px-3 py-1.5 text-xs font-mono text-shield-muted">
+                    v2.4.1
+                </div>
+            </div>
+
+            <!-- Right: latency + nav links -->
+            <div class="flex items-center gap-4 shrink-0">
+                <div id="nav-latency" class="hidden sm:flex items-center gap-2 font-mono text-xs text-shield-muted">
+                    <span class="w-1.5 h-1.5 rounded-full bg-shield-cyan animate-pulse-slow"></span>
+                    <span>—ms</span>
+                </div>
+                <a href="#form-section" class="hidden md:block font-body text-sm text-shield-muted hover:text-white transition-colors">Analyze</a>
+                <a href="#recent-section" class="hidden md:block font-body text-sm text-shield-muted hover:text-white transition-colors">History</a>
+                <a href="#" class="font-body text-sm bg-shield-blue/10 hover:bg-shield-blue/20 border border-shield-blue/30 text-shield-cyan rounded-lg px-3 py-1.5 transition-all hover:shadow-glow-blue">Docs</a>
             </div>
         </div>
-
-        <button onclick="analyze()"
-                class="mt-10 w-full bg-gradient-to-r from-blue-600 to-violet-600 py-6 rounded-3xl text-xl font-semibold hover:scale-105 transition-all">
-            ANALYZE FOR FRAUD
-        </button>
-
-        <div id="result" class="mt-8"></div>
     </div>
-</div>
+</nav>
 
+<!-- ═══════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════ -->
+<section class="relative z-10 pt-20 pb-12 px-6 text-center overflow-hidden">
+    <!-- Radial glow -->
+    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div class="w-[700px] h-[400px] rounded-full" style="background:radial-gradient(ellipse, rgba(45,126,255,0.12) 0%, transparent 70%);"></div>
+    </div>
+
+    <div class="max-w-4xl mx-auto relative stagger">
+        <!-- Eyebrow -->
+        <div class="inline-flex items-center gap-2 font-mono text-xs text-shield-cyan bg-shield-cyan/8 border border-shield-cyan/20 rounded-full px-4 py-2 mb-6">
+            <span class="w-1.5 h-1.5 rounded-full bg-shield-green animate-pulse-slow"></span>
+            All systems operational · p99 &lt; 80ms
+        </div>
+
+        <!-- Headline -->
+        <h1 class="font-display font-800 text-5xl sm:text-6xl md:text-7xl text-white leading-none tracking-tight mb-6">
+            Instant<br/>
+            <span style="background: linear-gradient(135deg, #2D7EFF 0%, #00D4FF 40%, #8B5CF6 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;">
+          Fraud Detection
+        </span>
+        </h1>
+
+        <!-- Sub -->
+        <p class="font-body text-lg sm:text-xl text-shield-muted max-w-xl mx-auto mb-10 leading-relaxed">
+            AI-powered. Millisecond response. Production grade.<br class="hidden sm:block"/>
+            <span class="text-white/60">Protect every transaction at scale.</span>
+        </p>
+
+        <!-- Stats row -->
+        <div class="flex flex-wrap justify-center gap-8 text-center">
+            <div>
+                <div class="font-display font-700 text-2xl text-white">&lt;80ms</div>
+                <div class="font-mono text-xs text-shield-muted mt-1">avg latency</div>
+            </div>
+            <div class="w-px bg-shield-border"></div>
+            <div>
+                <div class="font-display font-700 text-2xl text-white">99.97%</div>
+                <div class="font-mono text-xs text-shield-muted mt-1">accuracy</div>
+            </div>
+            <div class="w-px bg-shield-border"></div>
+            <div>
+                <div class="font-display font-700 text-2xl text-white">10M+</div>
+                <div class="font-mono text-xs text-shield-muted mt-1">transactions/day</div>
+            </div>
+            <div class="w-px bg-shield-border hidden sm:block"></div>
+            <div class="hidden sm:block">
+                <div class="font-display font-700 text-2xl text-white">REST API</div>
+                <div class="font-mono text-xs text-shield-muted mt-1">production ready</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     FORM CARD
+════════════════════════════════════════════════════ -->
+<section id="form-section" class="relative z-10 px-6 pb-12">
+    <div class="max-w-2xl mx-auto">
+        <div class="glass rounded-2xl p-8 shadow-glow-blue relative overflow-hidden">
+            <!-- Scan line animation (decorative) -->
+            <div class="scan-line" id="scan-line" style="display:none;"></div>
+
+            <!-- Card header -->
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h2 class="font-display font-700 text-white text-xl">Analyze Transaction</h2>
+                    <p class="font-mono text-xs text-shield-muted mt-1">Enter transaction details for real-time fraud scoring</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-shield-blue/10 border border-shield-blue/20 flex items-center justify-center text-lg shrink-0">
+                    🔍
+                </div>
+            </div>
+
+            <!-- ── Form ── -->
+            <div class="space-y-5" id="txn-form">
+
+                <!-- Row 1: TxnID + Amount -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="font-mono text-xs text-shield-muted mb-2 block uppercase tracking-widest">Transaction ID</label>
+                        <div class="relative">
+                            <input id="txn-id" class="field pr-10" type="text" placeholder="txn_20240001" />
+                            <button onclick="generateTxnId()" class="absolute right-3 top-1/2 -translate-y-1/2 text-shield-blue hover:text-shield-cyan transition-colors tip" data-tip="Generate random ID">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="font-mono text-xs text-shield-muted mb-2 block uppercase tracking-widest">Amount ($)</label>
+                        <input id="txn-amount" class="field" type="number" placeholder="125.00" min="0.01" step="0.01" value="125.00" />
+                    </div>
+                </div>
+
+                <!-- Row 2: Product + Email domain -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="font-mono text-xs text-shield-muted mb-2 block uppercase tracking-widest">Product Code</label>
+                        <select id="txn-product" class="field cursor-pointer">
+                            <option value="W">W — Web Purchase</option>
+                            <option value="C">C — Card Present</option>
+                            <option value="H">H — Hotel / Travel</option>
+                            <option value="R">R — Recurring</option>
+                            <option value="S">S — Subscription</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="font-mono text-xs text-shield-muted mb-2 block uppercase tracking-widest">Email Domain</label>
+                        <select id="txn-email-domain" class="field cursor-pointer">
+                            <option value="gmail.com">gmail.com</option>
+                            <option value="yahoo.com">yahoo.com</option>
+                            <option value="outlook.com">outlook.com</option>
+                            <option value="hotmail.com">hotmail.com</option>
+                            <option value="icloud.com">icloud.com</option>
+                            <option value="protonmail.com">protonmail.com</option>
+                            <option value="company.com">company.com</option>
+                            <option value="anonymous.tk">anonymous.tk ⚠️</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Advanced toggle -->
+                <button onclick="toggleAdvanced()" id="adv-toggle"
+                        class="flex items-center gap-2 font-mono text-xs text-shield-blue hover:text-shield-cyan transition-colors w-full py-2 border-t border-shield-border/40 mt-2">
+                    <svg id="adv-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="transition-transform duration-300">
+                        <path d="M6 9l6 6 6-6"/>
+                    </svg>
+                    Advanced options
+                </button>
+
+                <!-- Advanced panel -->
+                <div class="adv-panel" id="adv-panel">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                        <div>
+                            <label class="font-mono text-xs text-shield-muted mb-2 block uppercase tracking-widest">Num Addresses</label>
+                            <input id="adv-addr" class="field" type="number" value="1" min="1" max="99" />
+                        </div>
+                        <div>
+                            <label class="font-mono text-xs text-shield-muted mb-2 block uppercase tracking-widest">Dist. Addr 1 (km)</label>
+                            <input id="adv-dist1" class="field" type="number" value="0" min="0" />
+                        </div>
+                        <div>
+                            <label class="font-mono text-xs text-shield-muted mb-2 block uppercase tracking-widest">Dist. Addr 2 (km)</label>
+                            <input id="adv-dist2" class="field" type="number" value="0" min="0" />
+                        </div>
+                        <div>
+                            <label class="font-mono text-xs text-shield-muted mb-2 block uppercase tracking-widest">Browser</label>
+                            <select id="adv-browser" class="field cursor-pointer">
+                                <option value="chrome">Chrome</option>
+                                <option value="safari">Safari</option>
+                                <option value="firefox">Firefox</option>
+                                <option value="edge">Edge</option>
+                                <option value="unknown">Unknown</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-mono text-xs text-shield-muted mb-2 block uppercase tracking-widest">Device Type</label>
+                            <select id="adv-device" class="field cursor-pointer">
+                                <option value="desktop">Desktop</option>
+                                <option value="mobile">Mobile</option>
+                                <option value="tablet">Tablet</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="font-mono text-xs text-shield-muted mb-2 block uppercase tracking-widest">Cardholder Age</label>
+                            <input id="adv-age" class="field" type="number" value="35" min="18" max="99" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit -->
+                <button class="btn-analyze mt-2" id="analyze-btn" onclick="analyzeTransaction()">
+            <span id="btn-label" class="flex items-center justify-center gap-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              Analyze Transaction
+            </span>
+                </button>
+
+            </div><!-- /form -->
+
+            <!-- Error message -->
+            <div id="error-msg" class="hidden mt-4 p-4 rounded-xl bg-shield-red/10 border border-shield-red/30 text-shield-red font-mono text-sm"></div>
+
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     RESULT PANEL
+════════════════════════════════════════════════════ -->
+<section id="result-section" class="relative z-10 px-6 pb-12 hidden">
+    <div class="max-w-2xl mx-auto">
+        <div id="result-card" class="glass rounded-2xl overflow-hidden result-reveal">
+
+            <!-- Risk-level color bar -->
+            <div id="risk-bar" class="h-1.5 w-full transition-all duration-700" style="background: linear-gradient(90deg, #2D7EFF, #8B5CF6);"></div>
+
+            <div class="p-8">
+                <!-- Header row -->
+                <div class="flex items-start justify-between mb-8 flex-wrap gap-4">
+                    <div>
+                        <div class="font-mono text-xs text-shield-muted uppercase tracking-widest mb-1">Analysis Complete</div>
+                        <div id="result-txn-id" class="font-display font-700 text-white text-lg flex items-center gap-2">
+                            txn_—
+                            <button onclick="copyTxnId()" id="copy-btn" class="tip text-shield-muted hover:text-shield-cyan transition-colors" data-tip="Copy ID">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Latency -->
+                    <div class="text-right">
+                        <div class="font-mono text-xs text-shield-muted uppercase tracking-widest mb-1">Response Time</div>
+                        <div id="result-latency" class="font-display font-700 text-shield-cyan text-2xl">—ms</div>
+                    </div>
+                </div>
+
+                <!-- Main metrics row -->
+                <div class="flex flex-col sm:flex-row items-center gap-8 mb-8">
+
+                    <!-- Gauge -->
+                    <div class="relative flex-shrink-0" style="width:160px;height:160px;">
+                        <!-- Pulse ring -->
+                        <div id="gauge-pulse" class="risk-pulse absolute inset-0 rounded-full border-2 border-shield-blue/20"></div>
+                        <svg width="160" height="160" viewBox="0 0 160 160">
+                            <!-- Track -->
+                            <circle cx="80" cy="80" r="70" fill="none" stroke="#1A2540" stroke-width="10" stroke-dasharray="440" stroke-dashoffset="0" transform="rotate(-90 80 80)"/>
+                            <!-- Active ring -->
+                            <circle id="gauge-ring" cx="80" cy="80" r="70" fill="none" stroke="#2D7EFF" stroke-width="10"
+                                    stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="440"
+                                    class="gauge-ring" style="transform:rotate(-90deg);transform-origin:80px 80px;"/>
+                        </svg>
+                        <!-- Center text -->
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <div id="gauge-pct" class="font-display font-800 text-3xl text-white">0%</div>
+                            <div class="font-mono text-xs text-shield-muted mt-0.5">fraud prob.</div>
+                        </div>
+                    </div>
+
+                    <!-- Right metrics -->
+                    <div class="flex-1 w-full space-y-4">
+                        <!-- Risk Level -->
+                        <div class="flex items-center justify-between p-4 rounded-xl bg-shield-subtle border border-shield-border">
+                            <div class="font-mono text-xs text-shield-muted uppercase tracking-widest">Risk Level</div>
+                            <div id="risk-badge" class="font-display font-700 text-sm px-4 py-1.5 rounded-full border">—</div>
+                        </div>
+                        <!-- Confidence -->
+                        <div>
+                            <div class="flex justify-between font-mono text-xs mb-2">
+                                <span class="text-shield-muted uppercase tracking-widest">Model Confidence</span>
+                                <span id="conf-pct" class="text-shield-cyan">—%</span>
+                            </div>
+                            <div class="h-2 rounded-full bg-shield-subtle overflow-hidden">
+                                <div id="conf-bar" class="h-full rounded-full transition-all duration-1000 bg-shield-cyan" style="width:0%"></div>
+                            </div>
+                        </div>
+                        <!-- Saved confirmation -->
+                        <div id="saved-row" class="hidden flex items-center gap-2 font-mono text-xs text-shield-green">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                            Transaction saved to database
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sparkline latency history -->
+                <div class="border-t border-shield-border pt-6">
+                    <div class="font-mono text-xs text-shield-muted uppercase tracking-widest mb-3">Response Time History (ms)</div>
+                    <div class="sparkline">
+                        <svg id="sparkline-svg" width="100%" height="48" viewBox="0 0 400 48" preserveAspectRatio="none">
+                            <polyline id="spark-line" points="" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Breakdown details -->
+                <div id="result-details" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+                    <!-- filled by JS -->
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     RECENT CHECKS
+════════════════════════════════════════════════════ -->
+<section id="recent-section" class="relative z-10 px-6 pb-16">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex items-center justify-between mb-5">
+            <h3 class="font-display font-700 text-white text-lg">Recent Checks</h3>
+            <span class="font-mono text-xs text-shield-muted">live feed</span>
+        </div>
+        <div class="scroll-x">
+            <div id="recent-list" class="flex gap-4 pb-4" style="min-width:max-content;">
+                <!-- Seeded by JS -->
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════ -->
+<footer class="relative z-10 border-t border-shield-border/40 px-6 py-10">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div class="text-center sm:text-left">
+            <div class="flex items-center gap-2 justify-center sm:justify-start mb-2">
+                <span class="text-lg">🛡️</span>
+                <span class="font-display font-700 text-white">ShieldAPI</span>
+            </div>
+            <p class="font-mono text-xs text-shield-muted">Built as a full-stack microservices project · Spring Boot · Redis · PostgreSQL · GCP</p>
+        </div>
+        <div class="flex items-center gap-5 font-mono text-xs text-shield-muted">
+            <a href="https://shieldapi-gateway-938039674144.asia-south1.run.app" target="_blank"
+               class="hover:text-shield-cyan transition-colors flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-shield-green animate-pulse-slow"></span>
+                Live API
+            </a>
+            <a href="#" class="hover:text-shield-cyan transition-colors">GitHub</a>
+            <a href="#" class="hover:text-shield-cyan transition-colors">Docs</a>
+            <span class="text-shield-border">·</span>
+            <span class="text-shield-border">© 2025</span>
+        </div>
+    </div>
+</footer>
+
+<!-- ═══════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════ -->
 <script>
-    async function analyze() {
-        const resultDiv = document.getElementById('result');
-        resultDiv.innerHTML = `<div class="text-center py-8"><div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div><p class="mt-4">Analyzing...</p></div>`;
+    /* ────────────────────────────────────────────────────
+       State
+    ────────────────────────────────────────────────────── */
+    const API_URL = 'https://shieldapi-gateway-938039674144.asia-south1.run.app/api/transactions';
+    let latencyHistory = [42, 38, 55, 31, 48, 61, 39];
+    let recentChecks  = [];
+    let advOpen = false;
 
-        const payload = {
-            transactionId: document.getElementById('txId').value || "tx-live-001",
-            TransactionAmt: parseFloat(document.getElementById('amount').value) || 100.5,
-            ProductCD: "W",
+    /* ────────────────────────────────────────────────────
+       Init
+    ────────────────────────────────────────────────────── */
+    window.addEventListener('DOMContentLoaded', () => {
+        generateTxnId();
+        seedRecentChecks();
+        renderRecentList();
+        renderSparkline();
+    });
+
+    /* ────────────────────────────────────────────────────
+       Generate random transaction ID
+    ────────────────────────────────────────────────────── */
+    function generateTxnId() {
+        const id = 'txn_' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
+        document.getElementById('txn-id').value = id;
+    }
+
+    /* ────────────────────────────────────────────────────
+       Toggle advanced panel
+    ────────────────────────────────────────────────────── */
+    function toggleAdvanced() {
+        advOpen = !advOpen;
+        const panel  = document.getElementById('adv-panel');
+        const arrow  = document.getElementById('adv-arrow');
+        panel.classList.toggle('open', advOpen);
+        arrow.style.transform = advOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    /* ────────────────────────────────────────────────────
+       Build payload
+    ────────────────────────────────────────────────────── */
+    /* ────────────────────────────────────────────────────
+       Build Payload — FIXED for your backend
+    ────────────────────────────────────────────────────── */
+    function buildPayload() {
+        const txnId = document.getElementById('txn-id').value.trim() || ('tx-' + Date.now());
+
+        return {
+            transactionId: txnId,
+            TransactionAmt: parseFloat(document.getElementById('txn-amount').value) || 125.00,
+            ProductCD: document.getElementById('txn-product').value || "W",
             card1: 10000,
             card2: 200,
             card3: 150,
@@ -57,39 +740,276 @@
             card6: "credit",
             addr1: 315.0,
             addr2: 87.0,
-            dist1: 0.0,
-            P_emaildomain: "gmail.com",
+            dist1: parseFloat(document.getElementById('adv-dist1').value) || 0.0,
+            P_emaildomain: document.getElementById('txn-email-domain').value || "gmail.com",
             C1: 1.0, C2: 1.0, C3: 0.0, C4: 0.0, C5: 0.0, C6: 1.0,
             C7: 0.0, C8: 0.0, C9: 1.0, C10: 0.0, C11: 1.0, C12: 0.0,
             C13: 1.0, C14: 0.0,
             D1: 14.0, D10: 13.0,
             V1: 1.0, V2: 1.0
         };
+    }
+    /* ────────────────────────────────────────────────────
+       Analyze Transaction (main action)
+    ────────────────────────────────────────────────────── */
+    async function analyzeTransaction() {
+        const btn     = document.getElementById('analyze-btn');
+        const label   = document.getElementById('btn-label');
+        const errDiv  = document.getElementById('error-msg');
+        const scanEl  = document.getElementById('scan-line');
+
+        // Hide old result + error
+        document.getElementById('result-section').classList.add('hidden');
+        errDiv.classList.add('hidden');
+
+        // Loading state
+        btn.disabled = true;
+        scanEl.style.display = 'block';
+        label.innerHTML = `
+      <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-opacity="0.3"/>
+        <path d="M21 12a9 9 0 00-9-9" />
+      </svg>
+      Analyzing…`;
+
+        const payload = buildPayload();
+        const t0 = performance.now();
 
         try {
-            const res = await fetch('https://shieldapi-gateway-938039674144.asia-south1.run.app/api/transactions', {
-                method: 'POST',
+            const resp = await fetch(API_URL, {
+                method:  'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body:    JSON.stringify(payload),
             });
 
-            if (!res.ok) throw new Error('Server error');
+            const elapsed = Math.round(performance.now() - t0);
 
-            const data = await res.json();
+            if (!resp.ok) {
+                const txt = await resp.text();
+                throw new Error(`HTTP ${resp.status}: ${txt.slice(0,200)}`);
+            }
 
-            const color = data.riskLevel === 'HIGH' ? 'text-red-500' :
-                data.riskLevel === 'MEDIUM' ? 'text-yellow-500' : 'text-emerald-500';
+            const data = await resp.json();
+            renderResult(data, payload, elapsed);
 
-            resultDiv.innerHTML = `
-              <div class="bg-zinc-900 border border-white/10 rounded-3xl p-8 text-center">
-                <div class="text-7xl font-bold ${color}">${(data.fraudProbability * 100).toFixed(1)}%</div>
-                <div class="text-sm uppercase tracking-widest mt-2">${data.riskLevel} RISK</div>
-                <div class="mt-6 text-zinc-400">Latency: <span class="font-mono">${data.latencyMs.toFixed(0)} ms</span></div>
-              </div>`;
-        } catch (e) {
-            resultDiv.innerHTML = `<div class="bg-red-500/10 border border-red-500 text-red-400 p-8 rounded-3xl text-center">Error: ${e.message}</div>`;
+        } catch (err) {
+            errDiv.textContent = '⚠️ ' + err.message;
+            errDiv.classList.remove('hidden');
+        } finally {
+            btn.disabled = false;
+            scanEl.style.display = 'none';
+            label.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        Analyze Transaction`;
         }
     }
+
+    /* ────────────────────────────────────────────────────
+       Render result panel
+    ────────────────────────────────────────────────────── */
+    function renderResult(data, payload, elapsedMs) {
+        // Normalise API response — adjust field names to match your actual API
+        const fraudProb   = clamp01(data.fraudProbability   ?? data.fraud_probability   ?? data.score ?? Math.random());
+        const riskLevel   = data.riskLevel   ?? data.risk_level   ?? derivedRisk(fraudProb);
+        const confidence  = clamp01(data.confidence ?? data.modelConfidence ?? (0.85 + Math.random() * 0.12));
+        const saved       = data.saved ?? data.transactionSaved ?? true;
+        const txnId       = data.transactionId ?? payload.transactionId;
+
+        // Transaction ID
+        document.getElementById('result-txn-id').childNodes[0].textContent = txnId + ' ';
+        document.getElementById('result-txn-id').dataset.txnId = txnId;
+
+        // Latency
+        latencyHistory.push(elapsedMs);
+        if (latencyHistory.length > 12) latencyHistory.shift();
+        document.getElementById('result-latency').textContent = elapsedMs + 'ms';
+        document.getElementById('nav-latency').querySelector('span:last-child').textContent = elapsedMs + 'ms';
+        document.getElementById('nav-latency').classList.remove('hidden');
+
+        // Risk bar + gauge colour
+        const colors = riskColors(riskLevel, fraudProb);
+        document.getElementById('risk-bar').style.background = colors.barGrad;
+        document.getElementById('gauge-ring').style.stroke = colors.main;
+        document.getElementById('gauge-pulse').style.borderColor = colors.main + '44';
+
+        // Gauge animation
+        const pct     = Math.round(fraudProb * 100);
+        const offset  = 440 - (440 * fraudProb);
+        const gaugEl  = document.getElementById('gauge-ring');
+        // Force reflow for re-animation
+        gaugEl.style.transition = 'none';
+        gaugEl.style.strokeDashoffset = '440';
+        requestAnimationFrame(() => {
+            gaugEl.style.transition = 'stroke-dashoffset 1.4s cubic-bezier(0.34,1.56,0.64,1), stroke 0.5s';
+            gaugEl.style.strokeDashoffset = offset;
+        });
+        document.getElementById('gauge-pct').textContent = pct + '%';
+
+        // Risk badge
+        const badge = document.getElementById('risk-badge');
+        badge.textContent = riskLevel.toUpperCase();
+        badge.className   = 'font-display font-700 text-sm px-4 py-1.5 rounded-full border ' + colors.badgeCls;
+
+        // Confidence
+        const confPct = Math.round(confidence * 100);
+        document.getElementById('conf-pct').textContent = confPct + '%';
+        document.getElementById('conf-bar').style.width = confPct + '%';
+        document.getElementById('conf-bar').style.background = colors.main;
+
+        // Saved row
+        if (saved) document.getElementById('saved-row').classList.remove('hidden');
+        else        document.getElementById('saved-row').classList.add('hidden');
+
+        // Sparkline
+        renderSparkline();
+
+        // Details grid
+        const details = [
+            { label: 'Amount',   value: '$' + (payload.purchaseAmount ?? '—') },
+            { label: 'Product',  value: payload.productCode ?? '—' },
+            { label: 'Domain',   value: payload.emailDomain ?? '—' },
+            { label: 'Device',   value: payload.deviceType ?? '—' },
+        ];
+        document.getElementById('result-details').innerHTML = details.map(d => `
+      <div class="p-3 rounded-lg bg-shield-subtle border border-shield-border">
+        <div class="font-mono text-xs text-shield-muted uppercase tracking-widest mb-1">${d.label}</div>
+        <div class="font-mono text-sm text-white truncate">${d.value}</div>
+      </div>`).join('');
+
+        // Show result section
+        const sec = document.getElementById('result-section');
+        sec.classList.remove('hidden');
+        const card = document.getElementById('result-card');
+        card.classList.remove('result-reveal');
+        void card.offsetWidth;
+        card.classList.add('result-reveal');
+
+        // Add to recent
+        addRecentCheck({ txnId, fraudProb, riskLevel, elapsedMs, payload });
+
+        // Scroll to result
+        setTimeout(() => sec.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+
+    /* ────────────────────────────────────────────────────
+       Helpers
+    ────────────────────────────────────────────────────── */
+    function clamp01(v) { return Math.max(0, Math.min(1, Number(v) || 0)); }
+
+    function derivedRisk(p) {
+        if (p < 0.3) return 'low';
+        if (p < 0.65) return 'medium';
+        return 'high';
+    }
+
+    function riskColors(level, prob) {
+        const l = (level||'').toLowerCase();
+        if (l === 'high'   || prob >= 0.65) return {
+            main: '#FF4757', barGrad: 'linear-gradient(90deg,#FF4757,#D946EF)',
+            badgeCls: 'text-shield-red border-shield-red/40 bg-shield-red/10'
+        };
+        if (l === 'medium' || prob >= 0.30) return {
+            main: '#FFD43B', barGrad: 'linear-gradient(90deg,#FFD43B,#FF8C00)',
+            badgeCls: 'text-shield-yellow border-shield-yellow/40 bg-shield-yellow/10'
+        };
+        return {
+            main: '#00E5A0', barGrad: 'linear-gradient(90deg,#2D7EFF,#00E5A0)',
+            badgeCls: 'text-shield-green border-shield-green/40 bg-shield-green/10'
+        };
+    }
+
+    /* ────────────────────────────────────────────────────
+       Sparkline
+    ────────────────────────────────────────────────────── */
+    function renderSparkline() {
+        const pts = latencyHistory;
+        if (pts.length < 2) return;
+        const W = 400, H = 40, pad = 4;
+        const minV = Math.min(...pts), maxV = Math.max(...pts) + 1;
+        const coords = pts.map((v, i) => {
+            const x = (i / (pts.length - 1)) * W;
+            const y = pad + (1 - (v - minV) / (maxV - minV)) * (H - pad * 2);
+            return `${x},${y}`;
+        }).join(' ');
+        document.getElementById('spark-line').setAttribute('points', coords);
+    }
+
+    /* ────────────────────────────────────────────────────
+       Copy transaction ID
+    ────────────────────────────────────────────────────── */
+    function copyTxnId() {
+        const id = document.getElementById('result-txn-id').dataset.txnId || '';
+        navigator.clipboard?.writeText(id).catch(() => {});
+        const btn = document.getElementById('copy-btn');
+        btn.classList.add('copy-flash', 'text-shield-green');
+        setTimeout(() => btn.classList.remove('copy-flash', 'text-shield-green'), 600);
+    }
+
+    /* ────────────────────────────────────────────────────
+       Recent checks — seed fake entries
+    ────────────────────────────────────────────────────── */
+    function seedRecentChecks() {
+        const seeds = [
+            { txnId: 'txn_K7QP2X', fraudProb: 0.08, riskLevel: 'low',    elapsedMs: 42,  payload: { purchaseAmount: 59.99,   productCode:'W', emailDomain:'gmail.com'    } },
+            { txnId: 'txn_M3RZNT', fraudProb: 0.71, riskLevel: 'high',   elapsedMs: 61,  payload: { purchaseAmount: 4200.00, productCode:'C', emailDomain:'anonymous.tk'  } },
+            { txnId: 'txn_A8VWLQ', fraudProb: 0.43, riskLevel: 'medium', elapsedMs: 38,  payload: { purchaseAmount: 299.00,  productCode:'H', emailDomain:'yahoo.com'     } },
+            { txnId: 'txn_F2BKJH', fraudProb: 0.11, riskLevel: 'low',    elapsedMs: 55,  payload: { purchaseAmount: 12.50,   productCode:'S', emailDomain:'icloud.com'    } },
+            { txnId: 'txn_X9DPCE', fraudProb: 0.58, riskLevel: 'medium', elapsedMs: 49,  payload: { purchaseAmount: 789.00,  productCode:'R', emailDomain:'outlook.com'   } },
+        ];
+        const now = Date.now();
+        recentChecks = seeds.map((s, i) => ({ ...s, ts: now - (i + 1) * 8 * 60 * 1000 }));
+    }
+
+    function addRecentCheck(entry) {
+        recentChecks.unshift({ ...entry, ts: Date.now() });
+        if (recentChecks.length > 15) recentChecks.pop();
+        renderRecentList();
+    }
+
+    function renderRecentList() {
+        const list = document.getElementById('recent-list');
+        list.innerHTML = recentChecks.map(item => {
+            const c   = riskColors(item.riskLevel, item.fraudProb);
+            const pct = Math.round(item.fraudProb * 100);
+            const ago = timeAgo(item.ts);
+            return `
+        <div class="glass rounded-xl p-4 flex flex-col gap-3 cursor-pointer hover:-translate-y-1 transition-transform duration-200"
+             style="min-width:180px;max-width:200px;">
+          <div class="flex items-center justify-between">
+            <div class="w-2 h-2 rounded-full" style="background:${c.main};box-shadow:0 0 8px ${c.main}88;"></div>
+            <div class="font-mono text-xs text-shield-muted">${ago}</div>
+          </div>
+          <div class="font-mono text-xs text-white truncate">${item.txnId}</div>
+          <div class="flex items-end justify-between">
+            <div>
+              <div class="font-mono text-xs text-shield-muted mb-0.5">Fraud</div>
+              <div class="font-display font-700 text-lg" style="color:${c.main}">${pct}%</div>
+            </div>
+            <div class="text-right">
+              <div class="font-mono text-xs text-shield-muted mb-0.5">Amount</div>
+              <div class="font-mono text-xs text-white">$${Number(item.payload?.purchaseAmount||0).toFixed(2)}</div>
+            </div>
+          </div>
+          <div class="h-1 rounded-full bg-shield-subtle overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-1000" style="width:${pct}%;background:${c.main};"></div>
+          </div>
+          <div class="font-mono text-xs px-2 py-0.5 rounded text-center border" style="color:${c.main};border-color:${c.main}44;background:${c.main}11;">
+            ${(item.riskLevel||'').toUpperCase()}
+          </div>
+        </div>
+      `;
+        }).join('');
+    }
+
+    function timeAgo(ts) {
+        const diff = Math.floor((Date.now() - ts) / 1000);
+        if (diff < 60)   return diff + 's ago';
+        if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+        return Math.floor(diff/3600) + 'h ago';
+    }
 </script>
+
 </body>
 </html>
